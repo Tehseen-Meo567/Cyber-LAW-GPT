@@ -248,20 +248,44 @@ show_sources = st.sidebar.checkbox("Show source passages used", value=True)
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### Document source")
-drive_link = st.sidebar.text_input("Google Drive PDF link", value=DEFAULT_DRIVE_LINK)
+st.sidebar.caption(
+    "Priority: a PDF bundled in the app folder > Google Drive link > manual upload."
+)
+drive_link = st.sidebar.text_input("Google Drive PDF link (fallback)", value=DEFAULT_DRIVE_LINK)
 uploaded_file = st.sidebar.file_uploader(
-    "...or upload the PDF manually (used if Drive download fails)", type=["pdf"]
+    "...or upload the PDF manually (used if the other two fail)", type=["pdf"]
 )
 reload_btn = st.sidebar.button("🔄 Rebuild index from source")
 
 # ----------------------------------------------------------------------------
-# Load the document (download -> extract -> chunk -> embed) — runs at startup
-# and is cached, so it only happens once per document.
+# Load the document (local file -> Drive download -> manual upload -> embed).
+# Runs at startup and is cached, so it only happens once per document.
 # ----------------------------------------------------------------------------
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def find_bundled_pdf() -> str | None:
+    """Look for a PDF committed alongside app.py in the repo (most reliable option)."""
+    import glob
+
+    candidates = sorted(glob.glob(os.path.join(APP_DIR, "*.pdf")))
+    return candidates[0] if candidates else None
+
+
 def get_pdf_bytes():
+    # 1) A PDF committed to the repo next to app.py — most reliable, no
+    #    network dependency, works identically on every platform.
+    bundled_path = find_bundled_pdf()
+    if bundled_path:
+        with open(bundled_path, "rb") as f:
+            return f.read(), f"Loaded bundled file: {os.path.basename(bundled_path)}"
+
+    # 2) Manual upload from the sidebar.
     if uploaded_file is not None:
         return uploaded_file.read(), "Loaded from manual upload."
 
+    # 3) Google Drive download (least reliable — depends on Drive permissions
+    #    and Google's automated-download limits).
     tmp_path = os.path.join(tempfile.gettempdir(), "cyberlaw_source.pdf")
     ok, msg = download_pdf_from_drive(drive_link, tmp_path)
     if ok:
@@ -287,8 +311,9 @@ st.caption(
 
 if not pdf_bytes:
     st.error(
-        f"Could not load the source PDF automatically ({status_msg}). "
-        "Please upload the PDF using the sidebar."
+        f"Could not load a source PDF ({status_msg}). "
+        "Either commit a .pdf file into the app's repo folder, fix the Google "
+        "Drive link, or upload the PDF using the sidebar."
     )
     st.stop()
 else:
