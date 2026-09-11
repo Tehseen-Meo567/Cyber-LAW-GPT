@@ -59,11 +59,26 @@ def download_pdf_from_drive(drive_link: str, dest_path: str) -> tuple[bool, str]
 
     file_id = _extract_drive_id(drive_link)
     url = f"https://drive.google.com/uc?id={file_id}"
-    try:
-        gdown.download(url, dest_path, quiet=True, fuzzy=True)
-        if os.path.exists(dest_path) and os.path.getsize(dest_path) > 0:
+
+    def _finish(result_path):
+        if result_path and os.path.exists(result_path) and os.path.getsize(result_path) > 0:
             return True, "Downloaded from Google Drive."
         return False, "Download produced an empty file (link may not be public)."
+
+    # Newer gdown versions accept fuzzy=True (lets you pass a full share link).
+    # Older versions (installed on some Streamlit Cloud environments) don't
+    # know that argument, so fall back to the plain call if it errors out.
+    try:
+        result_path = gdown.download(url, dest_path, quiet=True, fuzzy=True)
+        return _finish(result_path)
+    except TypeError:
+        pass
+    except Exception as exc:  # noqa: BLE001
+        return False, f"Could not download from Google Drive: {exc}"
+
+    try:
+        result_path = gdown.download(url, dest_path, quiet=True)
+        return _finish(result_path)
     except Exception as exc:  # noqa: BLE001
         return False, f"Could not download from Google Drive: {exc}"
 
