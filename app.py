@@ -207,18 +207,17 @@ def build_prompt(question, context_chunks, tech_level, length, language):
 def call_groq(system_prompt: str, question: str, api_key: str) -> str:
     from groq import Groq
 
-    client = Groq(api_key=api_key)
-    completion = client.chat.completions.create(
-        model= ["llama-3.3-70b-versatile", 
-                "llama-3.1-8b-instant" ],
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": question},
-        ],
-        temperature=0.2,
-        max_tokens=1024,
-    )
-    return completion.choices[0].message.content
+client = Groq(api_key=api_key)
+completion = client.chat.completions.create(
+    model="llama-3.3-70b-versatile",  # Use a single string, not a list []
+    messages=[
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": question},
+    ],
+    temperature=0.2,
+    max_tokens=1024,
+)
+return completion.choices[0].message.content
 
 
 # ----------------------------------------------------------------------------
