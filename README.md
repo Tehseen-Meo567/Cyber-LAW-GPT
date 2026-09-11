@@ -1,4 +1,3 @@
-# Cyber-LAW-GPT
 # ⚖️ Cyber Law GPT
 
 A free-to-run Retrieval-Augmented-Generation (RAG) chatbot that answers
@@ -13,8 +12,11 @@ Streamlit, sentence-transformers, FAISS, and the free-tier Groq LLM API.
 
 ## How it works
 
-1. On startup the app downloads the cyber-law PDF from a Google Drive link
-   (or you can upload the PDF manually in the sidebar).
+1. On startup the app looks for the cyber-law PDF in this order:
+   1. **A `.pdf` file committed in the same folder as `app.py`** (most
+      reliable — recommended for deployment, no network dependency).
+   2. A Google Drive link (used only if no PDF is bundled locally).
+   3. A manual upload via the sidebar (always available as a fallback).
 2. The PDF text is extracted page-by-page and split into overlapping chunks.
 3. Each chunk is embedded locally with `sentence-transformers`
    (`all-MiniLM-L6-v2` — free, no API key, runs on CPU) and indexed in FAISS.
@@ -117,15 +119,18 @@ Open port 8501 in your cloud provider's firewall/security group settings.
 
 ## Using your own document
 
-- Replace the Google Drive link in the sidebar with your own **public**
-  Google Drive share link (Anyone with the link → Viewer), **or**
-- Use the "upload the PDF manually" option in the sidebar — this always
-  works and doesn't depend on Drive link permissions.
+- **Recommended:** commit a `.pdf` file into the same repo folder as
+  `app.py`. The app auto-detects any PDF sitting next to it and uses it
+  first — no download step, no permission issues, works identically on
+  Streamlit Cloud, Colab, or any server.
+- Otherwise, put a **public** Google Drive share link (Anyone with the
+  link → Viewer) in the sidebar as a fallback.
+- Or use the "upload the PDF manually" option in the sidebar — this always
+  works regardless of the other two.
 
 ## Notes on the source PDF
 
-The default Drive link in this app points to a cyber-law reference document.
-If Google Drive ever restricts downloads (e.g. large file, virus-scan
-warning, or link permission changes), the automatic download will fail —
-in that case simply upload the PDF file manually using the sidebar uploader;
-the app will detect it and re-build the index automatically.
+Bundling the PDF directly in the repo (option 1 above) is the most reliable
+approach: Google Drive automated downloads can be blocked by file-size virus
+scans, rate limits, or permission changes, none of which affect a file that
+ships with your code.
